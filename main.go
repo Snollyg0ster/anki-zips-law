@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	outputFolder = "output"
-	audioFolder  = "audio"
-	inputFolder  = "input"
-	meanings     = "meanings.json"
-	lemma        = "lemma.txt"
-	cards        = "cards.txt"
+	outputFolder  = "output"
+	audioFolder   = "audio"
+	inputFolder   = "input"
+	meanings      = "meanings.json"
+	lemma         = "lemma.txt"
+	cardsFileName = "cards.txt"
 )
 
 func main() {
@@ -28,8 +28,6 @@ func main() {
 	audioFlag := flag.Int("audio", 0, "for generating audio fo N number of words")
 
 	flag.Parse()
-
-	fmt.Println(*txtFlag)
 
 	if *txtFlag {
 		createAnkiDeckTxt(lemma)
@@ -41,14 +39,18 @@ func main() {
 }
 
 var partsOfSpeech = map[string]string{
-	"n":     "noun",
-	"v":     "verb",
-	"a":     "adjective",
-	"adv":   "adverb",
-	"conj":  "conjunction",
-	"pron":  "pronoun",
-	"prep":  "preposition",
-	"modal": "modal verb",
+	"n":                 "noun",
+	"v":                 "verb",
+	"a":                 "adjective",
+	"adv":               "adverb",
+	"conj":              "conjunction",
+	"interjection":      "interjection",
+	"pron":              "pronoun",
+	"prep":              "preposition",
+	"modal":             "modal verb",
+	"co":                "coordinating conjunction",
+	"det":               "determiner",
+	"infinitive-marker": "infinitive marker",
 }
 
 type Meaning struct {
@@ -113,12 +115,52 @@ func createAnkiDeckTxt(filename string) {
 		})
 		index++
 
-		if index > 899 {
+		if index >= len(meanings) {
 			break
 		}
 	}
 
-	fmt.Println(cards)
+	cardsFile, err := os.Create(path.Join(outputFolder, cardsFileName))
+
+	checkErr(err)
+
+	writer := bufio.NewWriter(cardsFile)
+	_, err = writer.WriteString(strings.Join([]string{
+		"Word",
+		"Meaning",
+		"Example",
+		"Image",
+		"Sound",
+		"SoundMeaning",
+		"SoundExample",
+		"PartOfSpeach",
+		"Number",
+		"Amount",
+		"\n",
+	}, "; "))
+
+	checkErr(err)
+
+	for _, card := range cards {
+		line := strings.Join(
+			[]string{
+				card.Word,
+				card.Meaning.Meaning,
+				card.Example,
+				card.Image,
+				card.Sound,
+				card.SoundMeaning,
+				card.SoundExample,
+				card.PartOfSpeach,
+				strconv.Itoa(card.Number),
+				strconv.Itoa(card.Amount),
+				"\n",
+			},
+			"; ",
+		)
+		_, err := writer.WriteString(line)
+		checkErr(err)
+	}
 }
 
 func downloadIfNotExists(fileName string, text string) error {
